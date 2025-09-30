@@ -23,6 +23,23 @@ router.get("/api/events", async (req, res) => {
 
 
 
+// ✅ GET: traer un evento por ID
+router.get("/api/events/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const event = await ParkingEvent.findOne({ event_id: Number(id) });
+
+    if (!event) {
+      return res.status(404).json({ error: "Evento no encontrado" });
+    }
+
+    res.status(200).json(event);
+  } catch (error) {
+    console.error("❌ Error al obtener evento por ID:", error.message);
+    res.status(500).json({ error: "No se pudo obtener el evento" });
+  }
+});
+
 
 
 // 📥 POST: Cargar eventos desde el CSV y guardarlos
