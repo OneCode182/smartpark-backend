@@ -42,6 +42,51 @@ router.get("/api/events/:id", async (req, res) => {
 
 
 
+
+
+// ✅ POST: Crear un evento individual (duration calculado automáticamente)
+router.post("/api/events", async (req, res) => {
+  try {
+    // Encontrar el ID máximo actual
+    const lastEvent = await ParkingEvent.findOne().sort({ event_id: -1 }).exec();
+    const nextId = lastEvent ? lastEvent.event_id + 1 : 1; // si no hay eventos, arranca en 1
+
+    // Convertir a Date
+    const entryTime = new Date(req.body.entry_time);
+    const exitTime = new Date(req.body.exit_time);
+
+    // Calcular duración en minutos
+    const durationMinutes = Math.round((exitTime - entryTime) / (1000 * 60));
+
+    const newEvent = new ParkingEvent({
+      event_id: nextId,
+      entry_time: entryTime,
+      exit_time: exitTime,
+      vehicle_type: req.body.vehicle_type,
+      parking_spot: req.body.parking_spot,
+      location: req.body.location,
+      duration_minutes: durationMinutes, // calculado automáticamente
+      fee_amount: req.body.fee_amount,
+      payment_method: req.body.payment_method,
+      user_type: req.body.user_type,
+    });
+
+    const savedEvent = await newEvent.save();
+
+    // 🔄 devolver el JSON ya con duration calculado
+    res.status(201).json(savedEvent);
+  } catch (error) {
+    console.error("❌ Error al crear evento:", error.message);
+    res.status(500).json({ error: "No se pudo crear el evento" });
+  }
+});
+
+
+
+
+
+
+
 // 📥 POST: Cargar eventos desde el CSV y guardarlos
 router.post("/api/events/load", async (req, res) => {
   try {
@@ -81,6 +126,28 @@ router.post("/api/events/load", async (req, res) => {
     res.status(500).json({ error: "Error cargando datos desde el CSV" });
   }
 });
+
+
+
+// ✅ DELETE: eliminar un evento por ID
+router.delete("/api/events/:id", async (req, res) => {
+  try {
+    const eventId = parseInt(req.params.id, 10);
+
+    const deletedEvent = await ParkingEvent.findOneAndDelete({ event_id: eventId });
+
+    if (!deletedEvent) {
+      return res.status(404).json({ error: "Event not found" });
+    }
+
+    res.status(200).json({ message: "✅ Event deleted successfully", deletedEvent });
+  } catch (error) {
+    console.error("❌ Error deleting event:", error.message);
+    res.status(500).json({ error: "Failed to delete event" });
+  }
+});
+
+
 
 
 
